@@ -5,11 +5,13 @@ import json
 from pymavlink import mavutil
 
 def main():
-    print("[*] Connecting to /dev/ttyACM0...")
+    port = sys.argv[1] if len(sys.argv) > 1 else '/dev/ttyACM0'
+    baud = int(sys.argv[2]) if len(sys.argv) > 2 else 115200
+    print(f"[*] Connecting to {port} @ {baud} baud...")
     try:
-        mav = mavutil.mavlink_connection('/dev/ttyACM0', baud=115200)
+        mav = mavutil.mavlink_connection(port, baud=baud)
     except Exception as e:
-        print(f"[-] Error opening serial port: {e}")
+        print(f"[-] Error opening serial port {port}: {e}")
         return
 
     print("[*] Waiting for heartbeat...")

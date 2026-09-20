@@ -22,11 +22,17 @@ import ctypes
 import numpy as np
 import cv2
 
-os.environ.setdefault("LD_LIBRARY_PATH", "/home/radxa/npu")
+NPU_DIR = os.environ.get("NPU_DIR", os.path.join(os.path.expanduser("~"), "npu"))
+os.environ.setdefault("LD_LIBRARY_PATH", f".:{NPU_DIR}:/usr/local/lib")
 
 # ── Paths & Targets ───────────────────────────────────────────────────
-NPU_LIB    = "/home/radxa/npu/libawnn_npu.so"
-MODEL_NB   = "/home/radxa/npu/yolov5s.nb"
+NPU_LIB = os.path.join(NPU_DIR, "libawnn_npu.so")
+if not os.path.exists(NPU_LIB) and os.path.exists("./libawnn_npu.so"):
+    NPU_LIB = "./libawnn_npu.so"
+
+MODEL_NB = "yolov5s.nb"
+if not os.path.exists(MODEL_NB):
+    MODEL_NB = os.path.join(NPU_DIR, "yolov5s.nb")
 UDP_TARGET = ("127.0.0.1", 5002)
 
 # ── Frame Geometry ────────────────────────────────────────────────────

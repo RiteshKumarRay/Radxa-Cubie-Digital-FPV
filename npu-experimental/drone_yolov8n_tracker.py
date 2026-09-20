@@ -20,16 +20,20 @@ import ctypes
 import numpy as np
 import cv2
 
-os.environ.setdefault("LD_LIBRARY_PATH", "/home/radxa/npu")
+NPU_DIR = os.environ.get("NPU_DIR", os.path.join(os.path.expanduser("~"), "npu"))
+os.environ.setdefault("LD_LIBRARY_PATH", f".:{NPU_DIR}:/usr/local/lib")
 
 # ── Paths & Targets ───────────────────────────────────────────────────
-NPU_LIB = "/home/radxa/npu/libawnn_npu.so"
+NPU_LIB = os.path.join(NPU_DIR, "libawnn_npu.so")
+if not os.path.exists(NPU_LIB) and os.path.exists("./libawnn_npu.so"):
+    NPU_LIB = "./libawnn_npu.so"
 
 # Candidate model paths (prefers A733 then T527)
 MODEL_CANDIDATES = [
-    "/home/radxa/npu/yolov8n_384x640_a733.nb",
-    "/home/radxa/npu/yolov8n_384x640_t527.nb",
-    "/home/radxa/npu/yolov8n_384x640.nb"
+    "yolov8n_384x640_a733.nb",
+    "yolov8n_384x640_t527.nb",
+    os.path.join(NPU_DIR, "yolov8n_384x640_a733.nb"),
+    os.path.join(NPU_DIR, "yolov8n_384x640_t527.nb"),
 ]
 
 UDP_TARGET = ("127.0.0.1", 5002)

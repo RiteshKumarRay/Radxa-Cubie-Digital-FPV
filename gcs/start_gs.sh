@@ -1,20 +1,46 @@
 #!/bin/bash
 # ==============================================================================
 #  GCS — WFB-ng Ground Control Station  |  BL-M8812EU2 (RTL8812EU)
-#  Usage: gcs   (or: sudo /home/ritesh/wfb-ng/start_gs.sh)
-#  Stop:  gcs-stop
+#  Usage: sudo ./start_gs.sh   (or: sudo /path/to/wfb-ng/start_gs.sh)
+#  Stop:  sudo ./stop_gs.sh
 # ==============================================================================
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 CHANNEL="149"      # Must match VTX side (5745 MHz)
 BANDWIDTH="HT20"
-WFB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-KEY_FILE="$WFB_DIR/gs.key"
-DRIVER_KO="/home/ritesh/rtl88x2eu/8812eu.ko"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Auto-detect WFB-ng directory (or specify via: export WFB_DIR=/path/to/wfb-ng)
+if [ -z "$WFB_DIR" ]; then
+    if [ -f "$SCRIPT_DIR/wfb_rx" ]; then
+        WFB_DIR="$SCRIPT_DIR"
+    elif [ -f "$HOME/wfb-ng/wfb_rx" ]; then
+        WFB_DIR="$HOME/wfb-ng"
+    else
+        WFB_DIR="/usr/local/bin"
+    fi
+fi
+
+KEY_FILE="${KEY_FILE:-$WFB_DIR/gs.key}"
+[ ! -f "$KEY_FILE" ] && KEY_FILE="$SCRIPT_DIR/../keys/gs.key"
+
+# Locate RTL8812EU driver module (or specify via: export DRIVER_KO=/path/to/8812eu.ko)
+if [ -z "$DRIVER_KO" ]; then
+    if [ -f "$HOME/rtl88x2eu/8812eu.ko" ]; then
+        DRIVER_KO="$HOME/rtl88x2eu/8812eu.ko"
+    elif [ -f "$SCRIPT_DIR/../driver/8812eu.ko" ]; then
+        DRIVER_KO="$SCRIPT_DIR/../driver/8812eu.ko"
+    fi
+fi
 # ─────────────────────────────────────────────────────────────────────────────
 
-[ "$EUID" -ne 0 ] && { echo "[-] Run as root: sudo $0  (or just type: gcs)"; exit 1; }
-[ ! -f "$KEY_FILE" ] && { echo "[-] gs.key missing in $WFB_DIR"; exit 1; }
+[ "$EUID" -ne 0 ] && { echo "[-] Run as root: sudo $0"; exit 1; }
+if [ ! -f "$KEY_FILE" ]; then
+    echo "[-] gs.key missing at $KEY_FILE!"
+    echo "    To generate encryption keys, run: wfb_keygen"
+    echo "    Then place gs.key in $KEY_FILE and drone.key on your Drone."
+    exit 1
+fi
 
 echo "========================================================="
 echo "  GCS — WFB-ng Ground Station Starting..."
@@ -48,8 +74,11 @@ if [ -z "$WLAN" ] || [ "$RESET_CARD" = true ]; then
     rmmod 8812eu 2>/dev/null || true
     sleep 1
     usbreset 0bda:a81a 2>/dev/null || true
-    sleep 2
-    insmod "$DRIVER_KO" || { echo "[-] Failed to load 8812eu.ko"; exit 1; }
+    if [ -n "$DRIVER_KO" ] && [ -f "$DRIVER_KO" ]; then
+        insmod "$DRIVER_KO" rtw_power_mgnt=0 rtw_ips_mode=0 rtw_adaptivity_en=0 rtw_tx_pwr_lmt_enable=0 rtw_hwpdn_mode=0 2>/dev/null || modprobe 8812eu 2>/dev/null || true
+    else
+        modprobe 8812eu rtw_power_mgnt=0 rtw_ips_mode=0 rtw_adaptivity_en=0 rtw_tx_pwr_lmt_enable=0 rtw_hwpdn_mode=0 2>/dev/null || true
+    fi
     sleep 2
     WLAN=$(find_wlan)
     [ -z "$WLAN" ] && { echo "[-] RTL8812EU not found — check USB connection!"; exit 1; }
@@ -100,7 +129,9 @@ cd "$WFB_DIR"
 # Kill any previous proxy
 pkill -f mavlink_gcs_proxy.py 2>/dev/null || true
 # Start transparent MAVLink proxy (bridges 14552 <-> QGC 14550 <-> FPV 14551 <-> wfb_tx 14555)
-python3 "$WFB_DIR/mavlink_gcs_proxy.py" > /tmp/mavlink_proxy.log 2>&1 &
+PROXY_SCRIPT="$SCRIPT_DIR/mavlink_gcs_proxy.py"
+[ ! -f "$PROXY_SCRIPT" ] && PROXY_SCRIPT="$WFB_DIR/mavlink_gcs_proxy.py"
+python3 "$PROXY_SCRIPT" > /tmp/mavlink_proxy.log 2>&1 &
 PID_PROXY=$!
 
 # Port 1: MAVLink downlink (Drone→GCS)  → Proxy UDP 14552

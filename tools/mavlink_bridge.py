@@ -70,9 +70,12 @@ def run_bridge():
 
     active_tcp_clients = []
     
-    # Initialize UDP targets with current known client and all detected broadcasts
+    # Initialize UDP targets with detected broadcasts or optional custom GCS IP
     known_targets = set()
-    known_targets.add(("10.107.1.198", UDP_PORT))
+    custom_gcs_ip = os.environ.get("GCS_IP")
+    if custom_gcs_ip:
+        known_targets.add((custom_gcs_ip, UDP_PORT))
+        print(f"[+] Added static GCS target: {custom_gcs_ip}:{UDP_PORT}")
     for brd in get_broadcast_addresses():
         known_targets.add((brd, UDP_PORT))
         print(f"[+] Added broadcast target: {brd}:{UDP_PORT}")

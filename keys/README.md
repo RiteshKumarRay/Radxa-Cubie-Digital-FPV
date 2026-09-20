@@ -3,22 +3,26 @@
 WFB-ng uses libsodium / Curve25519 asymmetric public-private key cryptography for stream encryption.
 
 ## Files
-- `drone.key`: Placed on the Air Unit (`/home/radxa/wfb-ng/drone.key`)
-- `gs.key`: Placed on the Ground Control Station (`/home/ritesh/wfb-ng/gs.key`)
+- `drone.key`: Placed on the Air Unit (`/home/<DRONE_USER>/wfb-ng/drone.key`)
+- `gs.key`: Placed on the Ground Control Station (`/home/<GCS_USER>/wfb-ng/gs.key`)
+- `*.sample`: Sample keypair templates
 
 ## Generating New Keys
-To generate a new, unique key pair for your drone and ground station:
+You can run the included helper script:
 
 ```bash
-# On either machine:
-wfb_keygen
-
-# This generates two files in the current directory:
-#   drone.key
-#   gs.key
+cd keys/
+./generate_keys.sh
 ```
 
-Copy `drone.key` to the drone Air Unit and `gs.key` to the Ground Station laptop.
+Or manually using the `wfb_keygen` utility:
+
+```bash
+wfb_keygen
+# Generates drone.key and gs.key in the current directory
+```
+
+Copy `drone.key` to the drone Air Unit and `gs.key` to the Ground Station.
 
 > [!CAUTION]
 > Never share your private keys publicly if you want to keep your video stream and telemetry encrypted.

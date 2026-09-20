@@ -31,13 +31,13 @@
 
   STEP 1: Start the MediaMTX streaming server (run once per boot)
   ───────────────────────────────────────────────────────────────
-  sudo bash /home/radxa/start_camera.sh
+  sudo bash $HOME/start_camera.sh
 
   This starts MediaMTX AND the 1080p 30fps camera stream automatically.
 
   — OR — start MediaMTX manually then run a pipeline below:
 
-  sudo bash -c 'cd /home/radxa && ./mediamtx > /home/radxa/mediamtx.log 2>&1 &'
+  sudo bash -c 'cd $HOME && ./mediamtx > $HOME/mediamtx.log 2>&1 &'
   sleep 2
 
 
@@ -95,7 +95,7 @@
     h264parse config-interval=1 ! \
     queue max-size-bytes=25000000 ! \
     matroskamux ! \
-    filesink location=/home/radxa/myvideo.mkv sync=false
+    filesink location=$HOME/myvideo.mkv sync=false
 
   num-buffers controls the duration:
     num-buffers=900   →  30 seconds
@@ -116,7 +116,7 @@
     h264parse config-interval=1 ! \
     queue max-size-bytes=30000000 ! \
     matroskamux ! \
-    filesink location=/home/radxa/myvideo_4k.mkv sync=false
+    filesink location=$HOME/myvideo_4k.mkv sync=false
 
   num-buffers for 4K (24fps):
     num-buffers=720   →  30 seconds
@@ -155,7 +155,7 @@
     en-largemode=0 ! \
     video/x-raw,format=NV12,width=1920,height=1080 ! \
     jpegenc ! \
-    filesink location=/home/radxa/photo.jpg
+    filesink location=$HOME/photo.jpg
 
 
   Take a single JPEG photo (4K):
@@ -164,7 +164,7 @@
     en-largemode=1 ! \
     video/x-raw,format=NV12,width=3840,height=2160 ! \
     jpegenc ! \
-    filesink location=/home/radxa/photo_4k.jpg
+    filesink location=$HOME/photo_4k.jpg
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   SECTION 5 — TROUBLESHOOTING
@@ -198,16 +198,16 @@
   SECTION 6 — QUICK START SCRIPT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  A ready-made script is saved at /home/radxa/start_camera.sh
+  A ready-made script is saved at $HOME/start_camera.sh
   It starts MediaMTX + 1080p 30fps stream automatically.
 
   Usage:
-    sudo bash /home/radxa/start_camera.sh
+    sudo bash $HOME/start_camera.sh
 
   To make it auto-start on every boot, add to crontab:
     sudo crontab -e
     Add this line:
-    @reboot sleep 10 && bash /home/radxa/start_camera.sh
+    @reboot sleep 10 && bash $HOME/start_camera.sh
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   INSTALLED SOFTWARE

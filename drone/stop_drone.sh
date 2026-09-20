@@ -2,7 +2,8 @@
 export PATH="/sbin:/usr/sbin:/usr/local/sbin:$PATH"
 echo "[*] Stopping WFB-ng and Camera processes on Drone..."
 killall -9 wfb_tx wfb_rx ffmpeg gst-launch-1.0 mavlink-routerd 2>/dev/null || true
-pkill -9 -f drone_npu_tracker.py 2>/dev/null || true ; pkill -9 drone_yolov8n_tracker
+pkill -9 -f drone_yolov8n_tracker 2>/dev/null || true
+pkill -9 -f drone_npu_tracker 2>/dev/null || true
 
 WLAN=""
 for iface in $(ls /sys/class/net); do

@@ -2,7 +2,7 @@
 """
 Minimalist & Clean FPV OSD (DJI / OpenIPC / Betaflight Style)
 =============================================================================
-Pure 1080p Digital FPV + Bidirectional MAVLink Telemetry + WFB-ng RSSI
+Pure High-Definition Digital FPV (720p / 1080p) + Bidirectional MAVLink Telemetry + WFB-ng RSSI
 =============================================================================
 """
 

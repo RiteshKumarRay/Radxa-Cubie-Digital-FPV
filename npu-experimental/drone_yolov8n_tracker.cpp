@@ -101,9 +101,18 @@ bool read_all(int fd, uint8_t* buf, size_t count) {
 }
 
 int main(int argc, char** argv) {
-    const char* model_path = "/home/radxa/npu/yolov8n_384x640_a733.nb";
+    const char* home = std::getenv("HOME");
+    std::string home_a733 = home ? std::string(home) + "/npu/yolov8n_384x640_a733.nb" : "";
+    std::string home_t527 = home ? std::string(home) + "/npu/yolov8n_384x640_t527.nb" : "";
+
     if (access(model_path, F_OK) != 0) {
-        model_path = "/home/radxa/npu/yolov8n_384x640_t527.nb";
+        model_path = "yolov8n_384x640_t527.nb";
+    }
+    if (access(model_path, F_OK) != 0 && !home_a733.empty() && access(home_a733.c_str(), F_OK) == 0) {
+        model_path = home_a733.c_str();
+    }
+    if (access(model_path, F_OK) != 0 && !home_t527.empty() && access(home_t527.c_str(), F_OK) == 0) {
+        model_path = home_t527.c_str();
     }
     if (argc > 1) model_path = argv[1];
 

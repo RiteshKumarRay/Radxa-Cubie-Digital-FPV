@@ -9,8 +9,8 @@ echo "Clearing ISP cache..."
 sudo rm -f /mnt/isp0_* /mnt/isp1_*
 
 echo "Starting MediaMTX..."
-cd /home/radxa
-./mediamtx > /home/radxa/mediamtx.log 2>&1 &
+cd "$HOME"
+./mediamtx > "$HOME/mediamtx.log" 2>&1 &
 sleep 2
 
 echo "Starting 720p 30fps stream with SOFTWARE H264 encoder (zero VE conflicts)..."
@@ -23,6 +23,6 @@ sudo bash -c 'gst-launch-1.0 -e \
   x264enc tune=zerolatency speed-preset=ultrafast bitrate=2000 key-int-max=30 ! \
   "video/x-h264,profile=baseline" ! \
   h264parse config-interval=1 ! \
-  rtspclientsink location=rtsp://localhost:8554/camera > /home/radxa/gst.log 2>&1 &'
+  rtspclientsink location=rtsp://localhost:8554/camera > /tmp/gst.log 2>&1 &'
 
 echo "Done! Camera streaming at 720p (software encoder = no VE timeouts = smooth stream)."

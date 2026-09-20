@@ -1,6 +1,12 @@
 #!/bin/bash
 # Stop WFB-ng GCS processes and restore Wi-Fi
-WLAN="wlxfc376d07d198"
+# Auto-detect RTL8812EU interface or specify via: WLAN=wlan1 ./stop_gs.sh
+WLAN="${WLAN:-}"
+if [ -z "$WLAN" ]; then
+    for iface in $(ls /sys/class/net 2>/dev/null); do
+        grep -q '^fc:37:6d' "/sys/class/net/$iface/address" 2>/dev/null && WLAN="$iface" && break
+    done
+fi
 
 echo "[*] Stopping WFB-ng processes..."
 sudo killall -9 wfb_rx wfb_tx 2>/dev/null || true

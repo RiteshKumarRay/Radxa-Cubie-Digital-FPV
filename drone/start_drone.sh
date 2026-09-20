@@ -2,8 +2,8 @@
 # ==============================================================================
 #  VTX — WFB-ng Drone Air Unit  |  Radxa Cubie A7S + BL-M8812EU2 + Brio 100
 #  Ultra-Clean 720p @ 30 FPS High-Bitrate Video + Bidirectional MAVLink
-#  Usage: vtx   (or: sudo /home/radxa/wfb-ng/start_drone.sh)
-#  Stop:  vtx-stop
+#  Usage: sudo ./start_drone.sh   (or: sudo /path/to/wfb-ng/start_drone.sh)
+#  Stop:  sudo ./stop_drone.sh
 # ==============================================================================
 export PATH="/sbin:/usr/sbin:/usr/local/sbin:$PATH"
 
@@ -14,15 +14,43 @@ MCS="2"                # 0=BPSK(6.5M)  1=QPSK(13M)  2=QPSK(19.5M - perfect balan
 VIDEO_RES="1280x720"   # 720p (2x2 pixel binning = 4x light, solid 30fps, zero lag)
 VIDEO_FPS="30"
 VIDEO_BITRATE="3500k"  # 3.5 Mbps High-Fidelity CABAC (maximum safe sweet spot, razor sharp details)
-FC_DEVICE="/dev/ttyACM0"
-FC_BAUD="115200"
-WFB_DIR="/home/radxa/wfb-ng"
-KEY_FILE="$WFB_DIR/drone.key"
-MAV_CONF="$WFB_DIR/mavlink-router.conf"
+
+# Auto-locate WFB-ng directory (or specify via: export WFB_DIR=/path/to/wfb-ng)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -z "$WFB_DIR" ]; then
+    if [ -f "$SCRIPT_DIR/wfb_tx" ]; then
+        WFB_DIR="$SCRIPT_DIR"
+    elif [ -f "$HOME/wfb-ng/wfb_tx" ]; then
+        WFB_DIR="$HOME/wfb-ng"
+    elif [ -d "/home" ] && [ -n "$(find /home -maxdepth 3 -name wfb_tx 2>/dev/null | head -1)" ]; then
+        WFB_DIR="$(dirname "$(find /home -maxdepth 3 -name wfb_tx 2>/dev/null | head -1)")"
+    else
+        WFB_DIR="/usr/local/bin"
+    fi
+fi
+
+KEY_FILE="${KEY_FILE:-$WFB_DIR/drone.key}"
+MAV_CONF="${MAV_CONF:-$SCRIPT_DIR/mavlink-router.conf}"
+[ ! -f "$MAV_CONF" ] && MAV_CONF="$WFB_DIR/mavlink-router.conf"
+
+# Flight controller device (auto-detected if available)
+FC_BAUD="${FC_BAUD:-115200}"
+FC_DEVICE="${FC_DEVICE:-}"
+if [ -z "$FC_DEVICE" ] || [ ! -c "$FC_DEVICE" ]; then
+    for dev in /dev/ttyACM0 /dev/ttyACM1 /dev/ttyUSB0 /dev/ttyUSB1; do
+        [ -c "$dev" ] && FC_DEVICE="$dev" && break
+    done
+fi
+FC_DEVICE="${FC_DEVICE:-/dev/ttyACM0}"
 # ─────────────────────────────────────────────────────────────────────────────
 
-[ "$EUID" -ne 0 ] && { echo "[-] Run as root: sudo $0  (or just type: vtx)"; exit 1; }
-[ ! -f "$KEY_FILE" ] && { echo "[-] drone.key missing in $WFB_DIR"; exit 1; }
+[ "$EUID" -ne 0 ] && { echo "[-] Run as root: sudo $0"; exit 1; }
+if [ ! -f "$KEY_FILE" ]; then
+    echo "[-] drone.key missing at $KEY_FILE!"
+    echo "    To generate encryption keys, run: wfb_keygen"
+    echo "    Then copy drone.key to $KEY_FILE and gs.key to your Ground Station."
+    exit 1
+fi
 
 echo "========================================================="
 echo "  VTX — WFB-ng Air Unit (720p High-Bitrate + MAVLink)"

@@ -2,8 +2,8 @@
 trap "sudo pkill -9 gst-launch-1.0 2>/dev/null; exit 0" INT TERM EXIT
 
 echo "Starting camera streaming..."
-echo "radxa" | sudo -S pkill -9 gst-launch-1.0 2>/dev/null
-echo "radxa" | sudo -S gst-launch-1.0 -q v4l2src device=/dev/video0 en-awisp=1 en-largemode=0 ! video/x-raw,format=NV12,width=1920,height=1080,framerate=30/1 ! fakesink >/dev/null 2>&1 &
+sudo pkill -9 gst-launch-1.0 2>/dev/null || true
+sudo gst-launch-1.0 -q v4l2src device=/dev/video0 en-awisp=1 en-largemode=0 ! video/x-raw,format=NV12,width=1920,height=1080,framerate=30/1 ! fakesink >/dev/null 2>&1 &
 GST_PID=$!
 sleep 1.5
 
@@ -13,7 +13,7 @@ echo "  (Press Ctrl+C to stop)"
 echo "=========================================================="
 
 while kill -0 $GST_PID 2>/dev/null; do
-    INFO=$(echo "radxa" | sudo -S cat /sys/kernel/debug/mpp/mipi 2>/dev/null)
+    INFO=$(sudo cat /sys/kernel/debug/mpp/mipi 2>/dev/null)
     CLK=$(echo "$INFO" | grep "clk_lane:" | head -1 | awk "{print \$2, \$3}")
     L0=$(echo "$INFO" | grep "data_lane0:" | head -1 | awk "{print \$2, \$3}")
     L1=$(echo "$INFO" | grep "data_lane1:" | head -1 | awk "{print \$2, \$3}")

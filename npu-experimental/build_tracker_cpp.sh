@@ -5,21 +5,22 @@
 # ==============================================================================
 set -e
 
-cd /home/radxa/npu
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 echo "[*] Compiling C++ YOLOv8n Tracker (drone_yolov8n_tracker)..."
 
-# Ensure awnn_shim.o is fresh
-gcc -c -fPIC awnn_shim.c -o awnn_shim.o -I.
+# Compile awnn_shim.o if source exists
+[ -f awnn_shim.c ] && gcc -c -fPIC awnn_shim.c -o awnn_shim.o -I. || true
 
-# Compile and link tracker with rpath set to /home/radxa/npu
-g++ -O3 -std=c++14 drone_yolov8n_tracker.cpp awnn_shim.o \
+# Compile and link tracker with rpath set to origin directory
+g++ -O3 -std=c++14 drone_yolov8n_tracker.cpp $([ -f awnn_shim.o ] && echo "awnn_shim.o") \
     -o drone_yolov8n_tracker \
     -I. \
-    $(pkg-config --cflags --libs opencv4) \
+    $(pkg-config --cflags --libs opencv4 2>/dev/null || true) \
     -L. -lNBGlinker -lVIPhal -lpthread \
-    -Wl,-rpath,/home/radxa/npu
+    -Wl,-rpath,'$ORIGIN'
 
 chmod +x drone_yolov8n_tracker
 
-echo "[+] Successfully built /home/radxa/npu/drone_yolov8n_tracker!"
+echo "[+] Successfully built drone_yolov8n_tracker!"
