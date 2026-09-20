@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+ENV/
+
+# Logs and runtime files
+*.log
+/tmp/
+
+# C / C++ build artifacts
+*.o
+*.ko
+*.mod
+*.mod.c
+*.mod.o
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+
+# Media and large test files
+*.mkv
+*.mp4
+*.avi
+*.raw
+*.jpg
+*.png
+
+# Keep samples, ignore live sensitive keys
+keys/drone.key
+keys/gs.key
+!keys/*.sample
+!keys/README.md

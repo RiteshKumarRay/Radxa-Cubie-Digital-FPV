@@ -1,0 +1,222 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║         RADXA CUBIE A7S — IMX214 CAMERA COMMAND REFERENCE GUIDE            ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  IMPORTANT RULES (READ FIRST!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1080p 30fps  → Use /dev/video0  +  en-largemode=0   (single ISP, no tint)
+  4K 24fps     → Use /dev/video1  +  en-largemode=1   (dual ISP, no tint)
+
+  !! NEVER use /dev/video1 for 1080p — causes RED TINT split-screen bug !!
+  !! NEVER try 60fps at any resolution — crashes ISP, requires reboot      !!
+  !! If ISP gets stuck after bad settings — do: sudo reboot                 !!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SUPPORTED MODES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Resolution    FPS    Works?   Device       Mode
+  ──────────────────────────────────────────────────
+  1920x1080     30     ✅ YES   /dev/video0  en-largemode=0
+  3840x2160     24     ✅ YES   /dev/video1  en-largemode=1
+  1920x1080     60     ❌ NO    ISP timeout — do not try
+  3840x2160     30     ❌ NO    ISP crash — do not try
+  1280x720      60     ❌ NO    ISP timeout — do not try
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 1 — LIVE STREAMING (RTSP / Browser)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  STEP 1: Start the MediaMTX streaming server (run once per boot)
+  ───────────────────────────────────────────────────────────────
+  sudo bash /home/radxa/start_camera.sh
+
+  This starts MediaMTX AND the 1080p 30fps camera stream automatically.
+
+  — OR — start MediaMTX manually then run a pipeline below:
+
+  sudo bash -c 'cd /home/radxa && ./mediamtx > /home/radxa/mediamtx.log 2>&1 &'
+  sleep 2
+
+
+  STREAM — 1080p 30fps (RECOMMENDED)
+  ────────────────────────────────────
+  sudo gst-launch-1.0 -e \
+    v4l2src device=/dev/video0 en-awisp=1 en-largemode=0 do-timestamp=true ! \
+    video/x-raw,format=NV12,width=1920,height=1080,framerate=30/1 ! \
+    queue max-size-buffers=60 ! \
+    omxh264videoenc target-bitrate=8000000 ! \
+    h264parse config-interval=1 ! \
+    rtspclientsink location=rtsp://localhost:8554/camera
+
+
+  STREAM — 4K 24fps
+  ───────────────────
+  sudo gst-launch-1.0 -e \
+    v4l2src device=/dev/video1 en-awisp=1 en-largemode=1 do-timestamp=true ! \
+    video/x-raw,format=NV12,width=3840,height=2160,framerate=24/1 ! \
+    queue max-size-buffers=30 ! \
+    omxh264videoenc target-bitrate=8000000 ! \
+    h264parse config-interval=1 ! \
+    rtspclientsink location=rtsp://localhost:8554/camera
+
+
+  HOW TO WATCH THE STREAM
+  ────────────────────────
+  Browser (WebRTC — easiest, open on any device on same network):
+    http://<board-ip>:8889/camera
+
+  VLC / Any media player (RTSP):
+    rtsp://<board-ip>:8554/camera
+
+  To find your board's IP address:
+    hostname -I
+
+
+  STOP STREAMING
+  ──────────────
+  sudo pkill gst-launch-1.0
+  sudo pkill mediamtx
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 2 — RECORDING TO FILE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  RECORD — 1080p 30fps (change duration and filename as needed)
+  ──────────────────────────────────────────────────────────────
+  sudo gst-launch-1.0 -e \
+    v4l2src device=/dev/video0 en-awisp=1 en-largemode=0 do-timestamp=true \
+    num-buffers=1800 ! \
+    video/x-raw,format=NV12,width=1920,height=1080,framerate=30/1 ! \
+    queue max-size-buffers=60 ! \
+    omxh264videoenc target-bitrate=20000000 ! \
+    h264parse config-interval=1 ! \
+    queue max-size-bytes=25000000 ! \
+    matroskamux ! \
+    filesink location=/home/radxa/myvideo.mkv sync=false
+
+  num-buffers controls the duration:
+    num-buffers=900   →  30 seconds
+    num-buffers=1800  →  1 minute
+    num-buffers=3600  →  2 minutes
+    num-buffers=5400  →  3 minutes
+    num-buffers=9000  →  5 minutes
+
+
+  RECORD — 4K 24fps
+  ───────────────────
+  sudo gst-launch-1.0 -e \
+    v4l2src device=/dev/video1 en-awisp=1 en-largemode=1 do-timestamp=true \
+    num-buffers=1440 ! \
+    video/x-raw,format=NV12,width=3840,height=2160,framerate=24/1 ! \
+    queue max-size-buffers=30 ! \
+    omxh264videoenc target-bitrate=20000000 ! \
+    h264parse config-interval=1 ! \
+    queue max-size-bytes=30000000 ! \
+    matroskamux ! \
+    filesink location=/home/radxa/myvideo_4k.mkv sync=false
+
+  num-buffers for 4K (24fps):
+    num-buffers=720   →  30 seconds
+    num-buffers=1440  →  1 minute
+    num-buffers=2880  →  2 minutes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 3 — CHANGING QUALITY / BITRATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Change the target-bitrate= value in any command above.
+  Higher = better quality but larger file size.
+
+  Bitrate          Quality               File size (1 min)
+  ──────────────────────────────────────────────────────────
+  5000000    →  5 Mbps   — Low (streaming only)      ~37 MB
+  8000000    →  8 Mbps   — Good (streaming)           ~60 MB
+  10000000   → 10 Mbps   — Very good                  ~75 MB
+  15000000   → 15 Mbps   — Excellent                  ~112 MB
+  20000000   → 20 Mbps   — High quality recording     ~150 MB
+  30000000   → 30 Mbps   — Maximum safe quality       ~225 MB
+
+  !! Do NOT go above 30 Mbps — SD card may drop frames !!
+
+  Example — change recording to 15 Mbps:
+    Replace:  omxh264videoenc target-bitrate=20000000
+    With:     omxh264videoenc target-bitrate=15000000
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 4 — SNAPSHOT (SINGLE PHOTO)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Take a single JPEG photo (1080p):
+  ──────────────────────────────────
+  sudo gst-launch-1.0 v4l2src device=/dev/video0 num-buffers=1 en-awisp=1 \
+    en-largemode=0 ! \
+    video/x-raw,format=NV12,width=1920,height=1080 ! \
+    jpegenc ! \
+    filesink location=/home/radxa/photo.jpg
+
+
+  Take a single JPEG photo (4K):
+  ────────────────────────────────
+  sudo gst-launch-1.0 v4l2src device=/dev/video1 num-buffers=1 en-awisp=1 \
+    en-largemode=1 ! \
+    video/x-raw,format=NV12,width=3840,height=2160 ! \
+    jpegenc ! \
+    filesink location=/home/radxa/photo_4k.jpg
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 5 — TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Problem: Red tint / split-screen color issue
+  Fix: Make sure you are using /dev/video0 with en-largemode=0 for 1080p.
+       NEVER use /dev/video1 for 1080p.
+
+  Problem: Camera froze / ISP timeout / no frames
+  Fix: sudo reboot
+       This always happens after attempting 60fps — just reboot and retry.
+
+  Problem: "Device or resource busy"
+  Fix: Another process is using the camera. Kill it first:
+       sudo pkill gst-launch-1.0
+
+  Problem: Stream connected but no video in browser
+  Fix: ISP is stuck. Reboot board. Then run start_camera.sh again.
+
+  Problem: Frame drops in recorded video
+  Fix: Reduce bitrate (try 20000000 instead of 30000000)
+       Make sure SD card is fast (Class 10 / UHS-I or better)
+
+  Problem: MediaMTX not starting
+  Fix: Check if port 8554 is already in use:
+       ss -tlnp | grep 8554
+       Then kill old instance: sudo pkill mediamtx
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECTION 6 — QUICK START SCRIPT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  A ready-made script is saved at /home/radxa/start_camera.sh
+  It starts MediaMTX + 1080p 30fps stream automatically.
+
+  Usage:
+    sudo bash /home/radxa/start_camera.sh
+
+  To make it auto-start on every boot, add to crontab:
+    sudo crontab -e
+    Add this line:
+    @reboot sleep 10 && bash /home/radxa/start_camera.sh
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  INSTALLED SOFTWARE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  GStreamer        — camera pipeline tool (gst-launch-1.0)
+  omxh264videoenc  — hardware H.264 encoder (via libcedarc)
+  MediaMTX v1.9.0  — RTSP/WebRTC streaming server
+  ffmpeg           — video file tool (extract frames, convert)
+  v4l-utils        — camera control (v4l2-ctl)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
