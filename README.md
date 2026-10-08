@@ -1,6 +1,6 @@
 # Radxa-Cubie-Digital-FPV
 
-An open-source, ultra-low latency (<40ms), broadcast-grade digital FPV video and bidirectional MAVLink telemetry system built on the **Radxa Cubie A7S** (Allwinner A527 Octa-core Cortex-A55 SBC), **Logitech Brio 100**, and **RTL8812EU (BL-M8812EU2)** wireless transceivers using **WFB-ng**.
+An open-source, low latency (<40ms), broadcast-grade digital FPV video and bidirectional MAVLink telemetry system built on the **Radxa Cubie A7S** (Allwinner A527 Octa-core Cortex-A55 SBC), **Logitech Brio 100**, and **RTL8812EU (BL-M8812EU2)** wireless transceivers using **WFB-ng**.
 
 ---
 
